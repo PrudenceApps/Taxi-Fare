@@ -86,13 +86,19 @@ details summary{cursor:pointer;color:var(--muted);font-weight:600;padding:2px 0}
 .other{display:flex;align-items:center;gap:10px}
 .other input{max-width:110px}
 .fine{font-size:12px;color:var(--muted);margin:0}
+.newfare{font-family:var(--display);font-size:13px;font-weight:700;padding:6px 12px;border-radius:999px;background:transparent;color:var(--meter-fg);border:1px solid rgba(255,207,58,.5)}
+.x{flex:none;width:36px;height:36px;padding:0;border-radius:50%;font-size:20px;line-height:1;display:grid;place-items:center;background:var(--hover);color:var(--ink);border:1px solid var(--line)}
+.pickline .grp{display:flex;align-items:center;gap:10px;flex:none}
+.inwrap{position:relative}
+.inwrap input{padding-right:52px}
+.inwrap .x{position:absolute;right:6px;top:50%;transform:translateY(-50%)}
 @media (max-width:360px){.opts{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
 <div class="app">
   <section class="meter" aria-live="polite">
-    <div class="mtop"><span class="sign">TAXI</span><span class="lab" id="tariffLabel">Tariff 1</span></div>
+    <div class="mtop"><span class="sign">TAXI</span><span class="lab" id="tariffLabel">Tariff 1</span><button class="newfare" id="newFareBtn" type="button" hidden>New fare</button></div>
     <div class="mid">
       <div class="fare idle" id="fare">£--.--</div>
       <div class="range" id="range">Set a drop-off to get a fare</div>
@@ -108,7 +114,7 @@ details summary{cursor:pointer;color:var(--muted);font-weight:600;padding:2px 0}
   <section class="panel">
     <div class="pick">
       <button class="primary" id="locBtn" type="button">Use my location</button>
-      <div class="pickline"><span id="fromLine">Pick-up not set</span><button class="link" id="typePickBtn" type="button">Type pick-up</button></div>
+      <div class="pickline"><span id="fromLine">Pick-up not set</span><span class="grp"><button class="link" id="typePickBtn" type="button">Type pick-up</button><button class="x" id="clearFrom" type="button" aria-label="Clear pick-up" hidden>×</button></span></div>
       <div class="field" id="fromField" hidden>
         <input class="small" id="fromInput" type="search" placeholder="Pick-up address or postcode" autocomplete="off" aria-label="Pick-up address" aria-autocomplete="list" aria-controls="fromSugg">
         <ul class="sugg" id="fromSugg" role="listbox" hidden></ul>
@@ -116,7 +122,10 @@ details summary{cursor:pointer;color:var(--muted);font-weight:600;padding:2px 0}
     </div>
     <div class="field">
       <label for="toInput">Drop-off</label>
-      <input id="toInput" type="search" placeholder="Start typing an address or postcode" autocomplete="off" aria-autocomplete="list" aria-controls="toSugg">
+      <div class="inwrap">
+        <input id="toInput" type="text" placeholder="Start typing an address or postcode" autocomplete="off" aria-autocomplete="list" aria-controls="toSugg">
+        <button class="x" id="clearTo" type="button" aria-label="Clear drop-off" hidden>×</button>
+      </div>
       <ul class="sugg" id="toSugg" role="listbox" hidden></ul>
     </div>
     <p class="msg" id="msg"></p>
@@ -192,8 +201,16 @@ details summary{cursor:pointer;color:var(--muted);font-weight:600;padding:2px 0}
     $("tariffLabel").textContent = "Tariff " + t + (state.tariff === "auto" ? " · auto" : "");
     const extras = ($("xLcy").checked?6:0) + ($("xXmas").checked?4:0) + Math.max(0, parseFloat($("xOther").value)||0);
     $("sExtras").textContent = money(extras);
+    $("clearFrom").hidden = !state.from;
+    $("clearTo").hidden = !$("toInput").value;
+    $("newFareBtn").hidden = !(state.from || state.to || $("toInput").value);
     const r = state.route;
-    if (!r){ $("fare").textContent = "£--.--"; $("fare").classList.add("idle"); return; }
+    if (!r){
+      $("fare").textContent = "£--.--"; $("fare").classList.add("idle");
+      $("range").textContent = "Set a drop-off to get a fare"; $("destLine").textContent = "";
+      $("sMiles").textContent = "–"; $("sMins").textContent = "–";
+      return;
+    }
     const mins = r.mins*TRAFFIC[state.traffic];
     const f = fare(r.miles, mins, t) + extras;
     const lo = fare(r.miles, r.mins*TRAFFIC.light, t) + extras, hi = fare(r.miles, r.mins*TRAFFIC.heavy, t) + extras;
@@ -269,6 +286,7 @@ details summary{cursor:pointer;color:var(--muted);font-weight:600;padding:2px 0}
 
   // ---------- routing ----------
   async function calc(){
+    render();
     if (!state.to) return;
     if (!state.from){ msg("Set the pick-up: tap Use my location or type it.", true); return; }
     msg("Working out the route…");
@@ -288,7 +306,21 @@ details summary{cursor:pointer;color:var(--muted);font-weight:600;padding:2px 0}
     state.from = it; $("fromLine").textContent = "From " + it.main; $("fromField").hidden = true; $("typePickBtn").textContent = "Change";
     calc();
   });
-  $("toInput").addEventListener("input", () => { if (state.route){ state.route = null; $("destLine").textContent = ""; $("range").textContent = "Set a drop-off to get a fare"; render(); } });
+  $("toInput").addEventListener("input", () => { state.route = null; state.to = null; render(); });
+
+  function clearFrom(){
+    state.from = null; state.route = null;
+    $("fromInput").value = ""; $("fromLine").textContent = "Pick-up not set";
+    $("typePickBtn").textContent = "Type pick-up"; $("fromField").hidden = true;
+    msg(""); render();
+  }
+  function clearTo(focus){
+    state.to = null; state.route = null; $("toInput").value = ""; $("toSugg").hidden = true;
+    msg(""); render(); if (focus) $("toInput").focus();
+  }
+  $("clearFrom").addEventListener("click", clearFrom);
+  $("clearTo").addEventListener("click", () => clearTo(true));
+  $("newFareBtn").addEventListener("click", () => { clearFrom(); clearTo(false); $("xLcy").checked = false; $("xOther").value = 0; render(); window.scrollTo(0,0); });
 
   $("typePickBtn").addEventListener("click", () => {
     const f = $("fromField"); f.hidden = !f.hidden;
