@@ -1,289 +1,335 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cab Fare">
+<meta name="theme-color" content="#101214">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}[hidden]{display:none!important}</style>
+</head>
+<body>
 <title>Cab Fare Estimator</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800&family=Share+Tech+Mono&display=swap">
 <style>
-/* Layout: one narrow column, meter readout on top, inputs below — built for one-handed use in the cab */
+/* Layout: full-height single column — meter grows to fill the top, journey controls pinned beneath */
 :root{
-  --bg:#f3f2ee; --panel:#ffffff; --ink:#16181c; --muted:#5d6068; --line:#dcdbd5;
+  --bg:#f3f2ee; --panel:#ffffff; --ink:#16181c; --muted:#5d6068; --line:#dcdbd5; --hover:#f0eee6;
   --amber:#f2b705; --amber-ink:#1a1400; --meter-bg:#101214; --meter-fg:#ffcf3a; --danger:#b3261e;
   --display:"Overpass",system-ui,sans-serif; --mono:"Share Tech Mono",ui-monospace,monospace;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#0d0e10; --panel:#17191c; --ink:#ecebe6; --muted:#9a9ca3; --line:#2a2d32;
-  --amber:#f2b705; --amber-ink:#1a1400; --meter-bg:#050607; --meter-fg:#ffcf3a; --danger:#ff8a80; color-scheme:dark}}
+  --bg:#0d0e10; --panel:#17191c; --ink:#ecebe6; --muted:#9a9ca3; --line:#2a2d32; --hover:#22252a;
+  --meter-bg:#050607; --danger:#ff8a80; color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#0d0e10; --panel:#17191c; --ink:#ecebe6; --muted:#9a9ca3; --line:#2a2d32;
-  --amber:#f2b705; --amber-ink:#1a1400; --meter-bg:#050607; --meter-fg:#ffcf3a; --danger:#ff8a80; color-scheme:dark}
+  --bg:#0d0e10; --panel:#17191c; --ink:#ecebe6; --muted:#9a9ca3; --line:#2a2d32; --hover:#22252a;
+  --meter-bg:#050607; --danger:#ff8a80; color-scheme:dark}
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--ink);font-family:var(--display);font-size:16px;line-height:1.45;margin:0}
-.wrap{max-width:520px;margin:0 auto;padding-block:16px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:16px}
-header{display:flex;align-items:center;gap:10px}
-.sign{background:var(--amber);color:var(--amber-ink);font-weight:800;letter-spacing:.18em;font-size:13px;padding:4px 9px;border-radius:4px}
-h1{font-size:20px;margin:0;font-weight:800;text-wrap:balance}
-.meter{background:var(--meter-bg);border-radius:14px;padding:18px 18px 16px;color:var(--meter-fg);display:flex;flex-direction:column;gap:8px}
-.meter .lab{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;opacity:.75;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
-.fare{font-family:var(--mono);font-size:64px;line-height:1;font-variant-numeric:tabular-nums;text-shadow:0 0 18px rgba(255,207,58,.35)}
-.range{font-family:var(--mono);font-size:15px;opacity:.9}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-family:var(--mono);font-size:13px;border-top:1px solid rgba(255,207,58,.2);padding-top:10px}
-.stats b{display:block;font-size:17px;font-weight:400}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:12px}
-.panel h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0;font-weight:600}
-label{font-size:14px;font-weight:600;display:flex;flex-direction:column;gap:6px}
-input[type=text],input[type=number],input[type=search]{font:inherit;font-size:17px;padding:11px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);width:100%}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--display);font-size:16px;line-height:1.4;margin:0}
+.app{min-height:100%;max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:12px;
+  padding-block:12px 16px;padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px))}
+
+/* Meter */
+.meter{flex:1 1 auto;min-height:220px;background:var(--meter-bg);color:var(--meter-fg);border-radius:16px;
+  padding:14px 16px;display:flex;flex-direction:column;justify-content:space-between;gap:10px}
+.mtop{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.sign{background:var(--amber);color:var(--amber-ink);font-family:var(--display);font-weight:800;letter-spacing:.18em;font-size:12px;padding:3px 8px;border-radius:4px}
+.lab{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;opacity:.75}
+.mid{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
+.fare{font-family:var(--mono);font-size:clamp(56px,22vw,112px);line-height:1;font-variant-numeric:tabular-nums;text-shadow:0 0 22px rgba(255,207,58,.35)}
+.fare.idle{opacity:.35}
+.range{font-family:var(--mono);font-size:16px;opacity:.9}
+.dest{font-family:var(--display);font-size:14px;opacity:.85;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-family:var(--mono);font-size:12px;border-top:1px solid rgba(255,207,58,.2);padding-top:10px;text-transform:uppercase;letter-spacing:.08em}
+.stats b{display:block;font-size:19px;font-weight:400;letter-spacing:0}
+
+/* Controls */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:10px}
+button{font:inherit;font-weight:700;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:12px;cursor:pointer}
+button.primary{background:var(--amber);color:var(--amber-ink);border-color:var(--amber);font-size:17px}
+button.link{background:none;border:none;padding:2px 0;font-weight:600;font-size:14px;color:var(--muted);text-decoration:underline;text-underline-offset:3px;align-self:flex-start}
+input{font:inherit;font-size:17px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);width:100%}
+input.small{font-size:15px;padding:9px 11px}
 input:focus-visible,button:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
-.row{display:flex;gap:8px;flex-wrap:wrap}
-.row>*{flex:1 1 120px;min-width:0}
-button{font:inherit;font-weight:700;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:11px 12px;cursor:pointer}
-button.primary{background:var(--amber);color:var(--amber-ink);border-color:var(--amber)}
-.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-.seg.three{grid-template-columns:repeat(3,1fr)}
-.seg button{padding:9px 4px;font-size:14px}
-.seg button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
-.note{font-size:13px;color:var(--muted);margin:0}
-.msg{font-size:14px;margin:0;color:var(--muted);min-height:1.2em}
+.pick{display:flex;flex-direction:column;gap:6px}
+.pickline{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14px;color:var(--muted)}
+.pickline span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.field{position:relative}
+.field label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:5px}
+.sugg{position:absolute;left:0;right:0;top:100%;margin-top:4px;background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  list-style:none;padding:4px;margin-block:4px 0;z-index:10;box-shadow:0 10px 30px rgba(0,0,0,.18);max-height:50vh;overflow-y:auto}
+.sugg li{padding:10px;border-radius:8px;cursor:pointer;display:flex;flex-direction:column;gap:1px}
+.sugg li:hover,.sugg li[aria-selected=true]{background:var(--hover)}
+.sugg .main{font-weight:600}
+.sugg .sub{font-size:13px;color:var(--muted)}
+.msg{font-size:14px;margin:0;color:var(--muted)}
+.msg:empty{display:none}
 .msg.err{color:var(--danger)}
-.check{flex-direction:row;align-items:center;gap:10px;font-weight:400}
-.check input{width:20px;height:20px;accent-color:var(--amber)}
-.from-line{font-size:14px;color:var(--muted)}
-details{font-size:14px;color:var(--muted)}
-details table{width:100%;border-collapse:collapse;margin-top:8px;font-variant-numeric:tabular-nums}
-details td,details th{text-align:left;padding:5px 4px;border-bottom:1px solid var(--line)}
-@media (max-width:380px){.fare{font-size:52px}}
+
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.opts .h{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:5px}
+.seg{display:grid;gap:4px}
+.seg.t3{grid-template-columns:repeat(3,1fr)}
+.seg.t4{grid-template-columns:repeat(4,1fr)}
+.seg button{padding:9px 0;font-size:14px;border-radius:8px}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+details{font-size:14px}
+details summary{cursor:pointer;color:var(--muted);font-weight:600;padding:2px 0}
+.extras{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+.check{display:flex;align-items:center;gap:10px}
+.check input{width:22px;height:22px;accent-color:var(--amber);flex:none}
+.other{display:flex;align-items:center;gap:10px}
+.other input{max-width:110px}
+.fine{font-size:12px;color:var(--muted);margin:0}
+@media (max-width:360px){.opts{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
-<div class="wrap">
-  <header><span class="sign">TAXI</span><h1>Cab Fare Estimator</h1></header>
-
+<div class="app">
   <section class="meter" aria-live="polite">
-    <div class="lab"><span id="tariffLabel">Tariff 1</span><span id="exampleTag">Example journey</span></div>
-    <div class="fare" id="fare">£0.00</div>
-    <div class="range" id="range">Range £0 – £0</div>
+    <div class="mtop"><span class="sign">TAXI</span><span class="lab" id="tariffLabel">Tariff 1</span></div>
+    <div class="mid">
+      <div class="fare idle" id="fare">£--.--</div>
+      <div class="range" id="range">Set a drop-off to get a fare</div>
+      <div class="dest" id="destLine"></div>
+    </div>
     <div class="stats">
       <div>Miles<b id="sMiles">–</b></div>
-      <div>Minutes<b id="sMins">–</b></div>
+      <div>Mins<b id="sMins">–</b></div>
       <div>Extras<b id="sExtras">£0</b></div>
     </div>
   </section>
 
   <section class="panel">
-    <h2>Journey</h2>
-    <div class="row">
+    <div class="pick">
       <button class="primary" id="locBtn" type="button">Use my location</button>
+      <div class="pickline"><span id="fromLine">Pick-up not set</span><button class="link" id="typePickBtn" type="button">Type pick-up</button></div>
+      <div class="field" id="fromField" hidden>
+        <input class="small" id="fromInput" type="search" placeholder="Pick-up address or postcode" autocomplete="off" aria-label="Pick-up address" aria-autocomplete="list" aria-controls="fromSugg">
+        <ul class="sugg" id="fromSugg" role="listbox" hidden></ul>
+      </div>
     </div>
-    <p class="from-line" id="fromLine">Pick-up: not set</p>
-    <label for="fromInput">Or type the pick-up
-      <input id="fromInput" type="search" placeholder="e.g. Liverpool Street Station" autocomplete="off">
-    </label>
-    <label for="toInput">Drop-off address or postcode
-      <input id="toInput" type="search" placeholder="e.g. SW1A 1AA" autocomplete="off">
-    </label>
-    <button class="primary" id="routeBtn" type="button">Get fare</button>
+    <div class="field">
+      <label for="toInput">Drop-off</label>
+      <input id="toInput" type="search" placeholder="Start typing an address or postcode" autocomplete="off" aria-autocomplete="list" aria-controls="toSugg">
+      <ul class="sugg" id="toSugg" role="listbox" hidden></ul>
+    </div>
     <p class="msg" id="msg"></p>
   </section>
 
   <section class="panel">
-    <h2>Or enter miles yourself</h2>
-    <div class="row">
-      <label for="milesIn">Miles<input id="milesIn" type="number" inputmode="decimal" min="0" step="0.1" value="3.2"></label>
-      <label for="minsIn">Minutes (optional)<input id="minsIn" type="number" inputmode="numeric" min="0" step="1" placeholder="auto"></label>
+    <div class="opts">
+      <div><div class="h">Traffic</div>
+        <div class="seg t3" id="trafficSeg">
+          <button type="button" data-v="light" aria-pressed="false">Light</button>
+          <button type="button" data-v="normal" aria-pressed="true">Norm</button>
+          <button type="button" data-v="heavy" aria-pressed="false">Heavy</button>
+        </div></div>
+      <div><div class="h">Tariff</div>
+        <div class="seg t4" id="tariffSeg">
+          <button type="button" data-v="auto" aria-pressed="true">Auto</button>
+          <button type="button" data-v="1" aria-pressed="false">1</button>
+          <button type="button" data-v="2" aria-pressed="false">2</button>
+          <button type="button" data-v="3" aria-pressed="false">3</button>
+        </div></div>
     </div>
+    <details>
+      <summary>Extras &amp; rates</summary>
+      <div class="extras">
+        <label class="check" for="xLcy"><input type="checkbox" id="xLcy"> London City Airport drop-off (£6.00)</label>
+        <label class="check" for="xXmas"><input type="checkbox" id="xXmas"> Christmas / New Year extra (£4.00)</label>
+        <label class="other" for="xOther">Other extras £<input class="small" id="xOther" type="number" inputmode="decimal" min="0" step="0.2" value="0"></label>
+        <p class="fine">TfL rates from 25 April 2026: £4.40 minimum; per mile £4.13 (T1), £4.99 (T2), £5.29 (T3), £4.99 beyond ~6 miles. Time charged below 10.4 mph. Routes and addresses from OpenStreetMap. Estimate only, not the meter.</p>
+      </div>
+    </details>
   </section>
-
-  <section class="panel">
-    <h2>Traffic</h2>
-    <div class="seg three" id="trafficSeg">
-      <button type="button" data-v="light" aria-pressed="false">Light</button>
-      <button type="button" data-v="normal" aria-pressed="true">Normal</button>
-      <button type="button" data-v="heavy" aria-pressed="false">Heavy</button>
-    </div>
-    <h2>Tariff</h2>
-    <div class="seg" id="tariffSeg">
-      <button type="button" data-v="auto" aria-pressed="true">Auto</button>
-      <button type="button" data-v="1" aria-pressed="false">T1</button>
-      <button type="button" data-v="2" aria-pressed="false">T2</button>
-      <button type="button" data-v="3" aria-pressed="false">T3</button>
-    </div>
-    <p class="note" id="tariffNote"></p>
-  </section>
-
-  <section class="panel">
-    <h2>Extras</h2>
-    <label class="check" for="xLcy"><input type="checkbox" id="xLcy"> London City Airport drop-off (£6.00)</label>
-    <label class="check" for="xXmas"><input type="checkbox" id="xXmas"> Christmas / New Year extra (£4.00)</label>
-    <label for="xOther">Other extras (£)<input id="xOther" type="number" inputmode="decimal" min="0" step="0.2" value="0"></label>
-  </section>
-
-  <details>
-    <summary>Rates used (TfL, from 25 April 2026)</summary>
-    <table>
-      <tr><th>Tariff</th><th>When</th><th>Per mile</th></tr>
-      <tr><td>1</td><td>Mon–Fri 05:00–20:00</td><td>£4.13</td></tr>
-      <tr><td>2</td><td>Mon–Fri 20:00–22:00, Sat–Sun 05:00–22:00</td><td>£4.99</td></tr>
-      <tr><td>3</td><td>Nightly 22:00–05:00, public holidays</td><td>£5.29</td></tr>
-      <tr><td>4</td><td>Any time, beyond ~6 miles</td><td>£4.99</td></tr>
-    </table>
-    <p>Minimum fare £4.40. When the cab is below 10.4 mph the meter charges by time instead, worked out here from the per-mile rate. Road distance comes from OpenStreetMap routing, and journey time is the routed time adjusted for traffic. This is an estimate, not the meter.</p>
-  </details>
 </div>
 
 <script>
 (() => {
-  const MIN_FARE = 4.40;
-  const RATE = {1: 4.13, 2: 4.99, 3: 5.29};
-  const T4 = 4.99;               // beyond ~6 miles, all tariffs
-  const SIX_MILES = 9627.6/1609.344;
-  const FIRST_MILES = 0.097;     // distance covered by the minimum fare (approx.)
-  const SLOW_MPH = 10.4;
-  const MOVING_MPH = 14;         // typical London speed when actually moving
-  const TRAFFIC = {light: 1.2, normal: 1.55, heavy: 2.1};
-  // England bank holidays (Tariff 3 all day)
+  const MIN_FARE = 4.40, RATE = {1:4.13, 2:4.99, 3:5.29}, T4 = 4.99;
+  const SIX_MILES = 9627.6/1609.344, FIRST_MILES = 0.097, SLOW_MPH = 10.4, MOVING_MPH = 14;
+  const TRAFFIC = {light:1.2, normal:1.55, heavy:2.1};
   const HOLS = new Set(["2026-01-01","2026-04-03","2026-04-06","2026-05-04","2026-05-25","2026-08-31","2026-12-25","2026-12-28",
     "2027-01-01","2027-03-26","2027-03-29","2027-05-03","2027-05-31","2027-08-30","2027-12-27","2027-12-28"]);
-
   const $ = id => document.getElementById(id);
-  const state = {traffic: "normal", tariff: "auto", route: null, from: null};
+  const state = {traffic:"normal", tariff:"auto", route:null, from:null, to:null};
 
+  // ---------- tariff + fare ----------
   function londonNow(){
-    const p = new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/London",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",weekday:"short",hour12:false}).formatToParts(new Date());
+    const p = new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/London",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",weekday:"short",hour12:false}).formatToParts(new Date());
     const g = t => p.find(x => x.type === t).value;
-    return {date:`${g("year")}-${g("month")}-${g("day")}`, hour:+g("hour")%24, min:+g("minute"), wd:g("weekday"), month:+g("month"), day:+g("day")};
+    return {date:`${g("year")}-${g("month")}-${g("day")}`, hour:+g("hour")%24, wd:g("weekday"), month:+g("month"), day:+g("day")};
   }
   function autoTariff(){
     const n = londonNow();
-    if (HOLS.has(n.date)) return {t:3, why:"public holiday"};
-    if (n.hour >= 22 || n.hour < 5) return {t:3, why:"night rate"};
-    const weekend = n.wd === "Sat" || n.wd === "Sun";
-    if (weekend) return {t:2, why:"weekend daytime"};
-    if (n.hour >= 20) return {t:2, why:"weekday evening"};
-    return {t:1, why:"weekday daytime"};
+    if (HOLS.has(n.date) || n.hour >= 22 || n.hour < 5) return 3;
+    if (n.wd === "Sat" || n.wd === "Sun" || n.hour >= 20) return 2;
+    return 1;
   }
   function xmasNow(){
-    const n = londonNow(), m = n.month, d = n.day, h = n.hour;
-    return (m===12 && ((d===24 && h>=20) || d===25 || d===26 || (d===27 && h<6) || (d===31 && h>=20))) ||
-           (m===1 && (d===1 || (d===2 && h<6)));
+    const {month:m, day:d, hour:h} = londonNow();
+    return (m===12 && ((d===24&&h>=20)||d===25||d===26||(d===27&&h<6)||(d===31&&h>=20))) || (m===1 && (d===1||(d===2&&h<6)));
   }
-
-  // Meter model: distance charged while moving, time charged while crawling (<10.4 mph).
   function fare(miles, mins, t){
     if (!(miles > 0)) return MIN_FARE;
-    const rate = RATE[t];
-    const d1 = Math.min(miles, SIX_MILES), d2 = Math.max(0, miles - SIX_MILES);
-    let f = MIN_FARE + rate * Math.max(0, d1 - FIRST_MILES) + T4 * d2;
-    const moveMins = miles / MOVING_MPH * 60;
-    const slowMins = Math.max(0, mins - moveMins);
-    const blended = (rate * d1 + T4 * d2) / miles;      // time charge follows the tariff in use
-    f += blended * SLOW_MPH / 60 * slowMins;
+    const rate = RATE[t], d1 = Math.min(miles, SIX_MILES), d2 = Math.max(0, miles - SIX_MILES);
+    let f = MIN_FARE + rate*Math.max(0, d1-FIRST_MILES) + T4*d2;
+    const slow = Math.max(0, mins - miles/MOVING_MPH*60);
+    f += (rate*d1 + T4*d2)/miles * SLOW_MPH/60 * slow;
     return Math.max(MIN_FARE, f);
   }
-  const r20 = v => Math.round(v * 5) / 5;
   const money = v => "£" + v.toFixed(2);
-
-  function currentTariff(){
-    if (state.tariff !== "auto") return {t:+state.tariff, why:"set manually"};
-    return autoTariff();
-  }
-  function minsFor(miles, baseMins, level){
-    if (baseMins != null) return baseMins * TRAFFIC[level];
-    return miles / 11 * 60 * TRAFFIC[level] / TRAFFIC.normal; // ~11 mph average in normal London traffic
-  }
+  const tariffNow = () => state.tariff === "auto" ? autoTariff() : +state.tariff;
 
   function render(){
-    const tt = currentTariff();
-    $("tariffLabel").textContent = "Tariff " + tt.t;
-    $("tariffNote").textContent = state.tariff === "auto" ? `Auto: Tariff ${tt.t} (${tt.why}, London time).` : "Tariff set manually.";
-    const milesInput = parseFloat($("milesIn").value);
-    const manualMins = parseFloat($("minsIn").value);
-    let miles, baseMins = null, src;
-    if (state.route){ miles = state.route.miles; baseMins = state.route.mins; src = "Routed"; }
-    else { miles = isFinite(milesInput) ? milesInput : 0; src = "Manual"; }
-    $("exampleTag").textContent = state.route ? "Routed journey" : (miles === 3.2 && !$("minsIn").value ? "Example journey" : "Manual entry");
-
-    let mins, lo, hi;
-    if (!state.route && isFinite(manualMins) && manualMins > 0){
-      mins = manualMins; lo = fare(miles, mins*0.85, tt.t); hi = fare(miles, mins*1.2, tt.t);
-    } else {
-      mins = minsFor(miles, baseMins, state.traffic);
-      lo = fare(miles, minsFor(miles, baseMins, "light"), tt.t);
-      hi = fare(miles, minsFor(miles, baseMins, "heavy"), tt.t);
-    }
-    const extras = ($("xLcy").checked ? 6 : 0) + ($("xXmas").checked ? 4 : 0) + Math.max(0, parseFloat($("xOther").value) || 0);
-    const f = fare(miles, mins, tt.t) + extras;
-    $("fare").textContent = money(r20(f));
-    $("range").textContent = `Range £${Math.floor(lo + extras)} – £${Math.ceil(hi + extras)}`;
-    $("sMiles").textContent = miles ? miles.toFixed(1) : "–";
-    $("sMins").textContent = miles ? Math.round(mins) : "–";
+    const t = tariffNow();
+    $("tariffLabel").textContent = "Tariff " + t + (state.tariff === "auto" ? " · auto" : "");
+    const extras = ($("xLcy").checked?6:0) + ($("xXmas").checked?4:0) + Math.max(0, parseFloat($("xOther").value)||0);
     $("sExtras").textContent = money(extras);
+    const r = state.route;
+    if (!r){ $("fare").textContent = "£--.--"; $("fare").classList.add("idle"); return; }
+    const mins = r.mins*TRAFFIC[state.traffic];
+    const f = fare(r.miles, mins, t) + extras;
+    const lo = fare(r.miles, r.mins*TRAFFIC.light, t) + extras, hi = fare(r.miles, r.mins*TRAFFIC.heavy, t) + extras;
+    $("fare").classList.remove("idle");
+    $("fare").textContent = money(Math.round(f*5)/5);
+    $("range").textContent = `Range £${Math.floor(lo)} – £${Math.ceil(hi)}`;
+    $("sMiles").textContent = r.miles.toFixed(1);
+    $("sMins").textContent = Math.round(mins);
   }
 
-  // --- location & routing (needs a normal browser over https) ---
-  const msg = (t, err) => { $("msg").textContent = t; $("msg").className = "msg" + (err ? " err" : ""); };
-  const NOT_HERE = "Live routing isn't available in this view. Open the page from your own website to use GPS and addresses, or enter miles below.";
+  // ---------- messages ----------
+  const NOT_HERE = "Live lookup isn't available in this view. Open the app from your own website to use location and address search.";
+  const msg = (t, err) => { $("msg").textContent = t || ""; $("msg").className = "msg" + (err ? " err" : ""); };
 
-  async function geocode(q){
-    const url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=gb&viewbox=-0.6,51.75,0.4,51.25&q=" + encodeURIComponent(q);
-    const r = await fetch(url, {headers:{"Accept-Language":"en-GB"}});
-    if (!r.ok) throw new Error("geocode");
+  // ---------- address search (Photon + postcodes.io) ----------
+  const PC_RE = /^[A-Z]{1,2}\d[A-Z\d]?\s*\d?[A-Z]{0,2}$/i;
+  function bias(){ const b = state.from || {lat:51.5074, lon:-0.1278}; return b; }
+  async function searchPlaces(q, signal){
+    if (PC_RE.test(q.trim())){
+      const r = await fetch("https://api.postcodes.io/postcodes?limit=6&q=" + encodeURIComponent(q.trim()), {signal});
+      const j = await r.json();
+      if (j.result && j.result.length) return j.result.map(p => ({main:p.postcode, sub:[p.admin_ward, p.admin_district].filter(Boolean).join(", "), lat:p.latitude, lon:p.longitude}));
+    }
+    const b = bias();
+    const url = `https://photon.komoot.io/api/?limit=6&lang=en&lat=${b.lat}&lon=${b.lon}&bbox=-1.0,51.0,1.4,52.2&q=` + encodeURIComponent(q);
+    const r = await fetch(url, {signal});
     const j = await r.json();
-    if (!j.length) return null;
-    return {lat:+j[0].lat, lon:+j[0].lon, name:j[0].display_name.split(",").slice(0,3).join(",")};
+    return (j.features||[]).map(f => {
+      const p = f.properties, [lon, lat] = f.geometry.coordinates;
+      const street = [p.housenumber, p.street].filter(Boolean).join(" ");
+      const main = p.name || street || p.city || "Unnamed place";
+      const sub = [p.name && street ? street : "", p.district || p.locality, p.city, p.postcode].filter(Boolean).filter(s => s !== main).join(", ");
+      return {main, sub, lat, lon};
+    });
   }
-  async function route(a, b){
-    const url = `https://router.project-osrm.org/route/v1/driving/${a.lon},${a.lat};${b.lon},${b.lat}?overview=false`;
-    const r = await fetch(url);
-    if (!r.ok) throw new Error("route");
-    const j = await r.json();
-    if (!j.routes || !j.routes.length) return null;
-    return {miles: j.routes[0].distance / 1609.344, mins: j.routes[0].duration / 60};
+
+  function autocomplete(input, list, onPick){
+    let timer, ctrl, items = [], active = -1;
+    const close = () => { list.hidden = true; active = -1; input.setAttribute("aria-expanded","false"); };
+    const draw = () => {
+      list.innerHTML = "";
+      items.forEach((it, i) => {
+        const li = document.createElement("li");
+        li.setAttribute("role","option"); li.setAttribute("aria-selected", i === active ? "true" : "false");
+        const a = document.createElement("span"); a.className = "main"; a.textContent = it.main;
+        const b = document.createElement("span"); b.className = "sub"; b.textContent = it.sub;
+        li.append(a, b);
+        li.addEventListener("pointerdown", e => { e.preventDefault(); pick(i); });
+        list.append(li);
+      });
+      list.hidden = !items.length; input.setAttribute("aria-expanded", String(!!items.length));
+    };
+    const pick = i => { const it = items[i]; if (!it) return; input.value = it.main + (it.sub ? ", " + it.sub.split(",")[0] : ""); close(); input.blur(); onPick(it); };
+    input.addEventListener("input", () => {
+      clearTimeout(timer); if (ctrl) ctrl.abort();
+      const q = input.value.trim();
+      if (q.length < 3){ items = []; close(); return; }
+      timer = setTimeout(async () => {
+        ctrl = new AbortController();
+        try { items = await searchPlaces(q, ctrl.signal); active = -1; draw(); msg(items.length ? "" : "No matches yet. Keep typing or try a postcode."); }
+        catch(e){ if (e.name !== "AbortError"){ items = []; close(); msg(NOT_HERE, true); } }
+      }, 280);
+    });
+    input.addEventListener("keydown", e => {
+      if (list.hidden) return;
+      if (e.key === "ArrowDown"){ active = Math.min(items.length-1, active+1); draw(); e.preventDefault(); }
+      else if (e.key === "ArrowUp"){ active = Math.max(0, active-1); draw(); e.preventDefault(); }
+      else if (e.key === "Enter"){ pick(active < 0 ? 0 : active); e.preventDefault(); }
+      else if (e.key === "Escape") close();
+    });
+    input.addEventListener("blur", () => setTimeout(close, 150));
   }
+
+  // ---------- routing ----------
+  async function calc(){
+    if (!state.to) return;
+    if (!state.from){ msg("Set the pick-up: tap Use my location or type it.", true); return; }
+    msg("Working out the route…");
+    try {
+      const a = state.from, b = state.to;
+      const r = await fetch(`https://router.project-osrm.org/route/v1/driving/${a.lon},${a.lat};${b.lon},${b.lat}?overview=false`);
+      const j = await r.json();
+      if (!j.routes || !j.routes.length){ msg("No road route found between those points.", true); return; }
+      state.route = {miles:j.routes[0].distance/1609.344, mins:j.routes[0].duration/60};
+      $("destLine").textContent = "To " + b.main;
+      msg(""); render();
+    } catch(e){ msg(NOT_HERE, true); }
+  }
+
+  autocomplete($("toInput"), $("toSugg"), it => { state.to = it; calc(); });
+  autocomplete($("fromInput"), $("fromSugg"), it => {
+    state.from = it; $("fromLine").textContent = "From " + it.main; $("fromField").hidden = true; $("typePickBtn").textContent = "Change";
+    calc();
+  });
+  $("toInput").addEventListener("input", () => { if (state.route){ state.route = null; $("destLine").textContent = ""; $("range").textContent = "Set a drop-off to get a fare"; render(); } });
+
+  $("typePickBtn").addEventListener("click", () => {
+    const f = $("fromField"); f.hidden = !f.hidden;
+    if (!f.hidden){ $("fromInput").value = ""; $("fromInput").focus(); }
+  });
 
   $("locBtn").addEventListener("click", () => {
     if (!navigator.geolocation){ msg(NOT_HERE, true); return; }
-    msg("Finding your location…");
-    navigator.geolocation.getCurrentPosition(p => {
-      state.from = {lat:p.coords.latitude, lon:p.coords.longitude, name:"Current location"};
-      $("fromInput").value = "";
-      $("fromLine").textContent = `Pick-up: current location (±${Math.round(p.coords.accuracy)} m)`;
-      msg("Location set. Enter the drop-off.");
-    }, () => msg("Couldn't get your location. Check location permission, or type the pick-up instead.", true),
-       {enableHighAccuracy:true, timeout:10000, maximumAge:30000});
+    $("fromLine").textContent = "Finding your location…";
+    navigator.geolocation.getCurrentPosition(async p => {
+      const lat = p.coords.latitude, lon = p.coords.longitude;
+      state.from = {lat, lon, main:"Current location"};
+      $("fromLine").textContent = "From your location";
+      $("fromField").hidden = true; $("typePickBtn").textContent = "Type pick-up";
+      msg("");
+      try {
+        const r = await fetch(`https://photon.komoot.io/reverse?lat=${lat}&lon=${lon}&limit=1`);
+        const pr = (await r.json()).features?.[0]?.properties;
+        if (pr){ const s = pr.street || pr.name || pr.district; if (s) $("fromLine").textContent = "From " + s + " (your location)"; }
+      } catch(e){}
+      calc();
+    }, () => { $("fromLine").textContent = "Pick-up not set"; msg("Couldn't get your location. Allow location access, or tap Type pick-up.", true); },
+    {enableHighAccuracy:true, timeout:10000, maximumAge:30000});
   });
 
-  $("routeBtn").addEventListener("click", async () => {
-    const to = $("toInput").value.trim(), fromText = $("fromInput").value.trim();
-    if (!to){ msg("Enter a drop-off address or postcode.", true); return; }
-    if (!state.from && !fromText){ msg("Set the pick-up first: tap Use my location or type it.", true); return; }
-    msg("Working out the route…");
-    try {
-      let from = state.from;
-      if (fromText){ from = await geocode(fromText); if (!from){ msg("Couldn't find that pick-up. Try a postcode.", true); return; } }
-      const dest = await geocode(to);
-      if (!dest){ msg("Couldn't find that drop-off. Try a postcode.", true); return; }
-      const rt = await route(from, dest);
-      if (!rt){ msg("No road route found between those points.", true); return; }
-      state.route = rt;
-      $("milesIn").value = rt.miles.toFixed(1); $("minsIn").value = "";
-      $("fromLine").textContent = "Pick-up: " + (fromText ? from.name : from.name);
-      msg("To: " + dest.name);
-      render();
-    } catch(e){ msg(NOT_HERE, true); }
-  });
-
-  ["milesIn","minsIn"].forEach(id => $(id).addEventListener("input", () => { state.route = null; render(); }));
-  ["xLcy","xXmas","xOther"].forEach(id => $(id).addEventListener("input", render));
   function seg(id, key){
     $(id).addEventListener("click", e => {
       const b = e.target.closest("button"); if (!b) return;
       state[key] = b.dataset.v;
-      $(id).querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
+      $(id).querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
       render();
     });
   }
   seg("trafficSeg","traffic"); seg("tariffSeg","tariff");
+  ["xLcy","xXmas","xOther"].forEach(id => $(id).addEventListener("input", render));
 
   $("xXmas").checked = xmasNow();
   render();
-  setInterval(render, 60000); // keep the auto tariff current
+  setInterval(render, 60000);
 })();
 </script>
+
+</body>
+</html>
